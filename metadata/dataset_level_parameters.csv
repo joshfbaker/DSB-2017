@@ -1,0 +1,3 @@
+dataset,num_patients ,num_patients_w_cancer ,perc_patients_w_cancer ,total_num_slices ,avg_num_slices ,total_num_pix ,avg_num_pix ,avg_volume ,max_volume 
+DSB,1397,362,0.2591267,248580,177.9384395,65163755520,46645494.29,0.03964875,0.117649
+LUNA,888,,,227225,255.884009,59565670400,67078457.66,0.040155235,0.089374913
