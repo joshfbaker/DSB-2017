@@ -18,6 +18,16 @@ except:
     print('TQDM does make much nicer wait bars...')
     tqdm = lambda x: x
 
+
+
+# Getting list of image files
+luna_path = "E:/LUNA16/" #location of your LUNA16 folder
+luna_subset_path = luna_path#luna_path+"all_patients/" #location of all of your patients
+output_path = "E:/LUNA16/tutorial/" #create a new tutorial folder within the LUNA16
+all_files = os.listdir(luna_subset_path)
+file_list = [luna_subset_path + i for i in all_files if '.mhd' in i]
+
+
 #Some helper functions
 
 def make_mask(center,diam,z,width,height,spacing,origin):
@@ -68,12 +78,7 @@ Returns uint16 version
 
 ############
 #
-# Getting list of image files
-luna_path = "C:/Users/572203/Documents/Data Science Bowl 2017/LUNA16/" #location of your LUNA16 folder
-luna_subset_path = luna_path+"all_patients/" #location of all of your patients
-output_path = "C:/Users/572203/Documents/Data Science Bowl 2017/LUNA16/tutorial/" #create a new tutorial folder within the LUNA16
-all_files = os.listdir(luna_subset_path)
-file_list = [luna_subset_path + i for i in all_files if '.mhd' in i]
+
 
 #file_list=glob(luna_subset_path+"*.mhd")
 
