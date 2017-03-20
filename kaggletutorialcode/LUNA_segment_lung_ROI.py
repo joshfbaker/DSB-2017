@@ -12,7 +12,7 @@ from sklearn.cluster import KMeans
 from skimage.transform import resize
 #from glob import glob
 
-working_path = "C:/Users/572203/Documents/Data Science Bowl 2017/LUNA16/tutorial/" #location of the tutorial folder you create in LUNA_mask_extraction.py
+working_path = "E:/LUNA16/tutorial/" #location of the tutorial folder you create in LUNA_mask_extraction.py
 all_files = os.listdir(working_path)
 file_list=[working_path+i for i in all_files if 'images' in i]
 #file_list=glob(working_path+"images_*.npy")
