@@ -168,8 +168,9 @@ all_patients = sorted(os.listdir(working_path))
             max = np.max(img)
             img = img/(max-min)
             new_img = resize(img,[512,512])
-        imgs_to_process[i] = new_img
-    #np.save(os.path.join(save_path+"DSBimages_"+str(fcount-1)), imgs_to_process)
+        segmented_lungs.append(new_img) 
+    segmented_lungs = np.stack(segmented_lungs)
+    #np.save(os.path.join(save_path+"DSBimages_"+str(fcount-1)), segmented_lungs)
     #need to add another block of code here that creates one file of all the slices, like LUNA script does
     
     # in the above code, could use np.savez here so you can save the numpy array as a compressed file.  Just a thought.
