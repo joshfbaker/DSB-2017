@@ -40,6 +40,7 @@ all_patients = sorted(os.listdir(working_path))
         s.SliceThickness = slice_thickness
     
     imgs_to_process = np.stack([s.pixel_array for s in dicom_images])
+    segmented_lungs = []
     for i in range(len(imgs_to_process)):
         img = imgs_to_process[i]
         #Standardize the pixel values
