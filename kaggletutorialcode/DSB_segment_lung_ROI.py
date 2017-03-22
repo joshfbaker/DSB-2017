@@ -12,9 +12,9 @@ all our DSB patients. To summarize, I combined the two giant for loops together 
 file.
 
 Since we talked earlier today, I managed to fix the problem; the segmented_lungs array at the end of the code has all the patient's
-CT slices with the lung segmentation code applied to them.  However, as well know, not all the CT slices have lungs in them; and yet,
+CT slices with the lung segmentation code applied to them.  However, as we all know, not all the CT slices have lungs in them; and yet,
 the number of slices hasn't decreased.  Therefore, we need to come up with a way to remove the slices that don't have real lungs in them!!
-I think this can be accomplished, or maybe the method is already in the code and I've messed up.  In either case, let's get cracking
+I think this can be accomplished; maybe the method is already in the code and I've messed up.  In either case, let's get cracking
 on this so we can just have lungs!!
 '''
 import os
