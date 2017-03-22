@@ -9,8 +9,13 @@ Created on Tue Mar 21 13:36:57 2017
 What's up fools, I annotated a few lines code at the beginning so that we can work on only one patient;
 once we get one patient's lungs segmented, we can delete the lines and generalize the for loop to run on
 all our DSB patients. To summarize, I combined the two giant for loops together from the original LUNA_segment_lung_ROI.py
-file. Right now, for some reason, the segmentation method just creates black images, which is no good.
-Let's do this thing!! 
+file.
+
+Since we talked earlier today, I managed to fix the problem; the segmented_lungs array at the end of the code has all the patient's
+CT slices with the lung segmentation code applied to them.  However, as well know, not all the CT slices have lungs in them; and yet,
+the number of slices hasn't decreased.  Therefore, we need to come up with a way to remove the slices that don't have real lungs in them!!
+I think this can be accomplished, or maybe the method is already in the code and I've messed up.  In either case, let's get cracking
+on this so we can just have lungs!!
 '''
 import os
 import numpy as np
