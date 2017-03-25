@@ -117,13 +117,19 @@ for fcount, img_file in enumerate(tqdm(file_list)):
             node_z = cur_row["coordZ"]
             diam = cur_row["diameter_mm"]
             # just keep 3 slices
-            imgs = np.ndarray([3,height,width],dtype=np.float32)
-            masks = np.ndarray([3,height,width],dtype=np.uint8)
             center = np.array([node_x, node_y, node_z])   # nodule center
-            v_center = np.rint((center-origin)/spacing)  # nodule center in voxel space (still x,y,z ordering)
-            for i, i_z in enumerate(np.arange(int(v_center[2])-1,
-                             int(v_center[2])+2).clip(0, num_z-1)): # clip prevents going out of bounds in Z
-                mask = make_mask(center, diam, i_z*spacing[2]+origin[2],
+            v_center = np.rint((center-origin)/spacing) # nodule center in voxel space (still x,y,z ordering)
+            nodule_max = int(np.floor(diam/spacing[2]/2))
+            if nodule_max == 0:
+                nodule_max = 1
+            imgs = np.ndarray([int(nodule_max*2+1),height,width],dtype=np.float32)
+            masks = np.ndarray([int(nodule_max*2+1),height,width],dtype=np.uint8)
+            for i, i_z in enumerate(np.arange(int(v_center[2])-nodule_max,
+                             int(v_center[2])+(nodule_max+1)).clip(0, num_z-1)): # clip prevents going out of bounds in Z
+                try:
+                    slice_diam = np.sqrt(diam^2-(np.abs(i_z-v_center[2])*spacing[2])^2)*2
+                except: slice_diam = 0
+                mask = make_mask(center, slice_diam, i_z*spacing[2]+origin[2],
                                  width, height, spacing, origin)
                 masks[i] = mask
                 imgs[i] = img_array[i_z]
