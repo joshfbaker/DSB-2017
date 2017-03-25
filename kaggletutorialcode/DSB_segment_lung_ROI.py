@@ -119,6 +119,18 @@ all_patients = sorted(os.listdir(working_path))
         
         #at some point in here, if we want to, we could save the old images and the blank mask if we wanted, but there isn't really a reason.
         img= mask*img          # apply lung mask
+        '''
+        SO RIGHT HERE, IM PRETTY SURE THAT IF WE COMPARE THE LOWER HALF OF THIS NEW
+        IMG FILE TO A BLANK FILE OF EQUAL SIZE, WITH ZEROS EVERYWHERE, AND THOSE
+        TWO FILES ARE EQUAL OR PRETTY CLOSE, THEN WE KNOW WE HAVE
+        A CT SCAN THAT DOESNT THAVE LUNGS IN IT, BECAUSE LUNGS ALWAYS START IN THE LOWER PART OF CT
+        SCANS (IS MY LAST STATEMENT TRUE?).
+        np.array_equal(segmented_lungs[25][256:], np.empty((256, 512)))
+        or
+        np.allclose(segmented_lungs[25][256:], np.empty((256, 512))) - this one might be the best...
+        ''' 
+        if np.allclose(img[256:], emptycompare):
+            continue
         #
         # renormalizing the masked image (in the mask region)
         #
@@ -165,7 +177,7 @@ all_patients = sorted(os.listdir(working_path))
         img = img[min_row:max_row,min_col:max_col]
         mask =  mask[min_row:max_row,min_col:max_col] # why is this here?
         if max_row-min_row <5 or max_col-min_col<5:  # skipping all images with no go0d regions
-            pass
+            pass - #shouldn't this be continue or something? i dont really know what pass is doing here...
         else:
             # moving range to -1 to 1 to accomodate the resize function
             mean = np.mean(img)
