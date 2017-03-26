@@ -188,6 +188,7 @@ all_patients = sorted(os.listdir(working_path))
             new_img = resize(img,[512,512])
         segmented_lungs.append(new_img) 
     segmented_lungs = np.stack(segmented_lungs)
+    np.save(os.path.join(save_path+"DSBimages_"+str(1), segmented_lungs) # you have to change this each time you want to create new patient files.
     #np.save(os.path.join(save_path+"DSBimages_"+str(fcount-1)), segmented_lungs)
     #need to add another block of code here that creates one file of all the slices, like LUNA script does
     
