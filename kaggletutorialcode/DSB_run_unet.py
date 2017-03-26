@@ -116,54 +116,17 @@ def get_unet():
 
     return model
 
+# In LUNA_train_unet, this function was train and predict. For DSB, we only want to predict.
+# Let's remove all training related code
+def predict():
+    # Load in the processed DSB Images
+    imgs_test = np.load(working_path+"DSBImages.npy").astype(np.float32)
 
-def train_and_predict(use_existing):
-    print('-'*30)
-    print('Loading and preprocessing train data...')
-    print('-'*30)
-    imgs_train = np.load(working_path+"trainImages.npy").astype(np.float32)
-    imgs_mask_train = np.load(working_path+"trainMasks.npy").astype(np.float32)
-
-    imgs_test = np.load(working_path+"testImages.npy").astype(np.float32)
-    imgs_mask_test_true = np.load(working_path+"testMasks.npy").astype(np.float32)
-    
-    mean = np.mean(imgs_train)  # mean for data centering
-    std = np.std(imgs_train)  # std for data normalization
-
-    imgs_train -= mean  # images should already be standardized, but just in case
-    imgs_train /= std
-
+    # We still need to stand up the unet model, if only to use it for prediction
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
     model = get_unet()
-    # Saving weights to unet.hdf5 at checkpoints
-    model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='loss', save_best_only=True)
-    #
-    # Should we load existing weights? 
-    # Set argument for call to train_and_predict to true at end of script
-    if use_existing:
-        model.load_weights('./unet.hdf5')
-        
-    # Original Author:
-    # The final results for this tutorial were produced using a multi-GPU
-    # machine using TitanX's.
-    # For a home GPU computation benchmark, on my home set up with a GTX970 
-    # I was able to run 20 epochs with a training set size of 320 and 
-    # batch size of 2 in about an hour. I started getting reseasonable masks 
-    # after about 3 hours of training. 
-    
-    # JFB:
-    # Only used a training set of 320! This is much less than the full training set. 
-    # May acheive better results on full dataset
-
-    print('-'*30)
-    print('Fitting model...')
-    print('-'*30)
-
-    #mode;.fit handles the complexity of batching, cross validating and looping
-    model.fit(imgs_train, imgs_mask_train, batch_size=2, nb_epoch=20, verbose=1, shuffle=True,
-              callbacks=[model_checkpoint])
 
     # loading best weights from training session
     print('-'*30)
@@ -175,22 +138,19 @@ def train_and_predict(use_existing):
     print('Predicting masks on test data...')
     print('-'*30)
     
+    # Why is imgs_test not normalized in the same way as imgs_train?  
+    # Shouldn't the processing steps be consistent?
     num_test = len(imgs_test)
-    # Initialize the numpy ND array
+
+    # Initialize the numpy ND array to hold predicted masks
     imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
     
     # Predict the nodule mask for every image in our test set
     for i in range(num_test):
         imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
-    np.save('masksTestPredicted.npy', imgs_mask_test)
+    np.save('masksDSBPredicted.npy', imgs_mask_test)
     
-    # Calculate the mean error per the dice coefficient
-    mean = 0.0
-    for i in range(num_test):
-        mean+=dice_coef_np(imgs_mask_test_true[i,0], imgs_mask_test[i,0])
-    mean/=num_test
+    # We can't calculate error because we don't have ground truth for the DSB image
     
-    print("Mean Dice Coeff : ",mean)
-
 if __name__ == '__main__':
-    train_and_predict(False)
+    predict()

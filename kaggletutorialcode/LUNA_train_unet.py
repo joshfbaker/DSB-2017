@@ -175,8 +175,11 @@ def train_and_predict(use_existing):
     print('Predicting masks on test data...')
     print('-'*30)
     
+    # Why is imgs_test not normalized in the same way as imgs_train?  
+    # Shouldn't the processing steps be consistent?
     num_test = len(imgs_test)
-    # Initialize the numpy ND array
+    
+    # Initialize the numpy ND array to hold predicted masks
     imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
     
     # Predict the nodule mask for every image in our test set
