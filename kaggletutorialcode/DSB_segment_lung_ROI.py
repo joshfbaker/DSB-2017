@@ -30,194 +30,164 @@ working_path = "C:/Users/576473/Desktop/DSB 2017/sample_images [Extracted]/" #th
 save_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/" #this is the location where the all-inclusive segmented lung DSB stage1 numpy array will go 
 all_patients = sorted(os.listdir(working_path))
 
-#for fcount, patient_folder in enumerate(tqdm(all_patients)):
-#dicom_files = os.listdir(working_path+patient_folder)
-dicom_files = os.listdir(working_path+all_patients[0]) #delete this line once we get the code working
-#dicom_images = [dicom.read_file(working_path+patient_folder+'/'+i) for i in dicom_files]
-dicom_images = [dicom.read_file(working_path+all_patients[0]+'/'+i) for i in dicom_files]#delete this line once we get the code working
-dicom_images.sort(key = lambda x: int(x.ImagePositionPatient[2]))
-try:
-    slice_thickness = np.abs(dicom_images[0].ImagePositionPatient[2] - dicom_images[1].ImagePositionPatient[2])
-except:
-    slice_thickness = np.abs(dicom_images[0].SliceLocation - dicom_images[1].SliceLocation)
-    
-for s in dicom_images:
-    s.SliceThickness = slice_thickness
+out_images = []  #final set of images
+patient_id = []  #num_patient x 1 length list of num images per patient
 
-imgs_to_process = np.stack([s.pixel_array for s in dicom_images])
-#segmented_lungs = []
-for i in range(len(imgs_to_process)):
-    img = imgs_to_process[i]
-    #Standardize the pixel values
-    mean = np.mean(img)
-    std = np.std(img)
-    img = img-mean
-    img = img/std
-    # Find the average pixel value near the lungs
-    # to renormalize washed out images
-    middle = img[100:400,100:400] 
-    mean = np.mean(middle)  
-    max = np.max(img)
-    min = np.min(img)
-    # To improve threshold finding, I'm moving the 
-    # underflow and overflow on the pixel spectrum
-    img[img==max]=mean
-    img[img==min]=mean
-    #
-    # Using Kmeans to separate foreground (radio-opaque tissue)
-    # and background (radio transparent tissue ie lungs)
-    # Doing this only on the center of the image to avoid 
-    # the non-tissue parts of the image as much as possible
-    #
-    kmeans = KMeans(n_clusters=2).fit(np.reshape(middle,[np.prod(middle.shape),1]))
-    centers = sorted(kmeans.cluster_centers_.flatten())
-    threshold = np.mean(centers)
-    thresh_img = np.where(img<threshold,1.0,0.0)  # threshold the image
-    #
-    # I found an initial erosion helful for removing graininess from some of the regions
-    # and then large dialation is used to make the lung region 
-    # engulf the vessels and incursions into the lung cavity by 
-    # radio opaque tissue
-    #
-    eroded = morphology.erosion(thresh_img,np.ones([4,4]))
-    dilation = morphology.dilation(eroded,np.ones([10,10]))
-    #
-    #  Label each region and obtain the region properties
-    #  The background region is removed by removing regions 
-    #  with a bbox that is to large in either dimnsion
-    #  Also, the lungs are generally far away from the top 
-    #  and bottom of the image, so any regions that are too
-    #  close to the top and bottom are removed
-    #  This does not produce a perfect segmentation of the lungs
-    #  from the image, but it is surprisingly good considering its
-    #  simplicity. 
-    #
-    labels = measure.label(dilation)
-    label_vals = np.unique(labels)
-    regions = measure.regionprops(labels)
-    good_labels = []
-    for prop in regions:
-        B = prop.bbox
-        if B[2]-B[0]<475 and B[3]-B[1]<475 and B[0]>40 and B[2]<472:
-            good_labels.append(prop.label)
-    mask = np.ndarray([512,512],dtype=np.int8)
-    mask[:] = 0
-    #
-    #  The mask here is the mask for the lungs--not the nodes
-    #  After just the lungs are left, we do another large dilation
-    #  in order to fill in and out the lung mask 
-    #
-    for N in good_labels:
-        mask = mask + np.where(labels==N,1,0)
-    mask = morphology.dilation(mask,np.ones([10,10])) # one last dilation
+#Looping through patient
+for fcount, patient_folder in enumerate(tqdm(all_patients)):
+    
+    dicom_files = os.listdir(working_path+patient_folder)
 
-    #JFB: mask is never stored back in the imgs_to_process array! Missing the following
-    # line of code from the LUNA analogous script
-    imgs_to_process[i] = mask
-    
-    #This is the point in which I combined the two giant for loops in the LUNA_segment_lung_ROI.py file
-    #so that we ignored all the redundant creation of .npy files.
-    
-    
-    out_images = []      #final set of images
-    #at some point in here, if we want to, we could save the old images and the blank mask if we wanted, but there isn't really a reason.
-    
-    # JFB: Wait a second.  We're mssing the nested for loop from the LUNA analog!
+    dicom_images = [dicom.read_file(working_path+patient_folder+'/'+i) for i in dicom_files]
 
-    img= mask*img          # apply lung mask
-    '''
-    SO RIGHT HERE, IM PRETTY SURE THAT IF WE COMPARE THE LOWER HALF OF THIS NEW
-    IMG FILE TO A BLANK FILE OF EQUAL SIZE, WITH ZEROS EVERYWHERE, AND THOSE
-    TWO FILES ARE EQUAL OR PRETTY CLOSE, THEN WE KNOW WE HAVE
-    A CT SCAN THAT DOESNT THAVE LUNGS IN IT, BECAUSE LUNGS ALWAYS START IN THE LOWER PART OF CT
-    SCANS (IS MY LAST STATEMENT TRUE?).
-    np.array_equal(segmented_lungs[25][256:], np.empty((256, 512)))
-    or
-    np.allclose(segmented_lungs[25][256:], np.empty((256, 512))) - this one might be the best...
-    ''' 
-    # JFB: In it's current form, this if statement doesnt seem to be doing anything...
-    # regardless of whether you pass or fail the conditional test, you get to continue
-    # through the loop.  Also, emptycompare is not defined
-    #if np.allclose(img[256:], emptycompare):
-    #    continue
-    #
-    # renormalizing the masked image (in the mask region)
-    #
-    new_mean = np.mean(img[mask>0])  
-    new_std = np.std(img[mask>0])
-    #
-    #  Pulling the background color up to the lower end
-    #  of the pixel range for the lungs
-    #
-    old_min = np.min(img)       # background color
-    img[img==old_min] = new_mean-1.2*new_std   # resetting backgound color
-    img = img-new_mean
-    img = img/new_std
-    #make image bounding box  (min row, min col, max row, max col)
-    labels = measure.label(mask)
-    regions = measure.regionprops(labels)
-    #
-    # Finding the global min and max row over all regions
-    #
-    min_row = 512
-    max_row = 0
-    min_col = 512
-    max_col = 0
-    for prop in regions:
-        B = prop.bbox
-        if min_row > B[0]:
-            min_row = B[0]
-        if min_col > B[1]:
-            min_col = B[1]
-        if max_row < B[2]:
-            max_row = B[2]
-        if max_col < B[3]:
-            max_col = B[3]
-    width = max_col-min_col
-    height = max_row - min_row
-    if width > height:
-        max_row=min_row+width
-    else:
-        max_col = min_col+height
-    # 
-    # cropping the image down to the bounding box for all regions
-    # (there's probably an skimage command that can do this in one line)
-    # 
-    img = img[min_row:max_row,min_col:max_col]
-    mask =  mask[min_row:max_row,min_col:max_col] # why is this here?
-    if max_row-min_row <5 or max_col-min_col<5:  # skipping all images with no go0d regions
-        pass #shouldn't this be continue or something? i dont really know what pass is doing here...
-    else:
-        # moving range to -1 to 1 to accomodate the resize function
+    dicom_images.sort(key = lambda x: int(x.ImagePositionPatient[2])) #List of dicom files
+
+    ####### Lob the top and bottom 10% of images ##########
+
+    patient_id.append(len(dicom_images))
+
+    imgs_to_process = np.stack([s.pixel_array for s in dicom_images]) #Convert to a numpy array num_slices x 512 x 512 
+
+    #Looping through individual patient's images
+    for i in range(len(imgs_to_process)):
+
+        img = imgs_to_process[i]
+        #Standardize the pixel values
         mean = np.mean(img)
-        img = img - mean
-        min = np.min(img)
+        std = np.std(img)
+        img = img-mean
+        img = img/std
+        # Find the average pixel value near the lungs
+        # to renormalize washed out images
+        middle = img[100:400,100:400] 
+        mean = np.mean(middle)  
         max = np.max(img)
-        img = img/(max-min)
-        new_img = resize(img,[512,512])
-        out_images.append(new_img) #Segmented lungs
+        min = np.min(img)
+        # To improve threshold finding, I'm moving the 
+        # underflow and overflow on the pixel spectrum
+        img[img==max]=mean
+        img[img==min]=mean
+        #
+        # Using Kmeans to separate foreground (radio-opaque tissue)
+        # and background (radio transparent tissue ie lungs)
+        # Doing this only on the center of the image to avoid 
+        # the non-tissue parts of the image as much as possible
+        #
+        kmeans = KMeans(n_clusters=2).fit(np.reshape(middle,[np.prod(middle.shape),1]))
+        centers = sorted(kmeans.cluster_centers_.flatten())
+        threshold = np.mean(centers)
+        thresh_img = np.where(img<threshold,1.0,0.0)  # threshold the image
+        #
+        # I found an initial erosion helful for removing graininess from some of the regions
+        # and then large dialation is used to make the lung region 
+        # engulf the vessels and incursions into the lung cavity by 
+        # radio opaque tissue
+        #
+        eroded = morphology.erosion(thresh_img,np.ones([4,4]))
+        dilation = morphology.dilation(eroded,np.ones([10,10]))
+        #
+        #  Label each region and obtain the region properties
+        #  The background region is removed by removing regions 
+        #  with a bbox that is to large in either dimnsion
+        #  Also, the lungs are generally far away from the top 
+        #  and bottom of the image, so any regions that are too
+        #  close to the top and bottom are removed
+        #  This does not produce a perfect segmentation of the lungs
+        #  from the image, but it is surprisingly good considering its
+        #  simplicity. 
+        #
+        labels = measure.label(dilation)
+        label_vals = np.unique(labels)
+        regions = measure.regionprops(labels)
+        good_labels = []
+        for prop in regions:
+            B = prop.bbox
+            if B[2]-B[0]<475 and B[3]-B[1]<475 and B[0]>40 and B[2]<472:
+                good_labels.append(prop.label)
+        mask = np.ndarray([512,512],dtype=np.int8)
+        mask[:] = 0
+        #
+        #  The mask here is the mask for the lungs--not the nodes
+        #  After just the lungs are left, we do another large dilation
+        #  in order to fill in and out the lung mask 
+        #
+        for N in good_labels:
+            mask = mask + np.where(labels==N,1,0)
+        mask = morphology.dilation(mask,np.ones([10,10])) # one last dilation
 
-# JFB: Where did np.stack come from? Commenting out for now...
-#segmented_lungs = np.stack(segmented_lungs)
+        ########### LOOP BREAK ###############
+        img = mask * img          # apply lung mask
+        #
+        # renormalizing the masked image (in the mask region)
+        #
+        new_mean = np.mean(img[mask>0])  
+        new_std = np.std(img[mask>0])
+        #
+        #  Pulling the background color up to the lower end
+        #  of the pixel range for the lungs
+        #
+        old_min = np.min(img)       # background color
+        img[img==old_min] = new_mean-1.2*new_std   # resetting backgound color
+        img = img-new_mean
+        img = img/new_std
+        #make image bounding box  (min row, min col, max row, max col)
+        labels = measure.label(mask)
+        regions = measure.regionprops(labels)
+        #
+        # Finding the global min and max row over all regions
+        #
+        min_row = 512
+        max_row = 0
+        min_col = 512
+        max_col = 0
+        for prop in regions:
+            B = prop.bbox
+            if min_row > B[0]:
+                min_row = B[0]
+            if min_col > B[1]:
+                min_col = B[1]
+            if max_row < B[2]:
+                max_row = B[2]
+            if max_col < B[3]:
+                max_col = B[3]
+        width = max_col-min_col
+        height = max_row - min_row
+        if width > height:
+            max_row=min_row+width
+        else:
+            max_col = min_col+height
+        # 
+        # cropping the image down to the bounding box for all regions
+        # (there's probably an skimage command that can do this in one line)
+        # 
+        img = img[min_row:max_row,min_col:max_col]
+        mask =  mask[min_row:max_row,min_col:max_col] # why is this here?
+        if max_row-min_row <5 or max_col-min_col<5:  # skipping all images with no go0d regions
+            pass #shouldn't this be continue or something? i dont really know what pass is doing here...
+        else:
+            # moving range to -1 to 1 to accomodate the resize function
+            mean = np.mean(img)
+            img = img - mean
+            min = np.min(img)
+            max = np.max(img)
+            img = img/(max-min)
+            print img.shape
+            new_img = resize(img,[512,512])
+            out_images.append(new_img) #Segmented lungs
 
-# Save DSBImages.  This section works regardless of whether we are testing
-# a single patient or running all patients
+
+
 num_images = len(out_images)
 
+#Initialize final_images numpy array (single channel)
 final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
+
+# Slot out_images into final_images
 for i in range(num_images):
     final_images[i,0] = out_images[i]
 
-np.save(save_path+"DSBImages.npy", final_images) # you have to change this each time you want to create new patient files.
-#np.save(os.path.join(save_path+"DSBimages_"+str(fcount-1)), segmented_lungs)
-#need to add another block of code here that creates one file of all the slices, like LUNA script does
+np.save(save_path+"DSBImages.npy", final_images)
 
 # in the above code, could use np.savez here so you can save the numpy array as a compressed file.  Just a thought.
 #can also use hdf5 to store these data sets, which apparently is very efficient and can be sliced into without heavy
 #loading into RAM while the hdf5 file is just sitting there on your disk...
-
-# JFB: Output seems strange here.  Only getting 1 image (while we expect to see num slices)
-# JFB: Note, we need to somehow record which patient each set of images came from.
-# In the LUNA dataset, it was sufficient to treat the lung/node mask pairs as
-# anonamized images.  However, for DSB, we need to be able to later join in
-# the cancer labels, so provenance of data must be preserved
