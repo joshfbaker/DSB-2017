@@ -43,13 +43,16 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
     dicom_images.sort(key = lambda x: int(x.ImagePositionPatient[2])) #List of dicom files
 
     ####### Lob the top and bottom 10% of images ##########
-
-    patient_id.append(len(dicom_images))
+    
+    lowerbound = int(np.round(len(dicom_images)*.10))
+    upperbound = int(np.round(len(dicom_images)*.90))
+    
+    patient_id.append(upperbound-lowerbound)
 
     imgs_to_process = np.stack([s.pixel_array for s in dicom_images]) #Convert to a numpy array num_slices x 512 x 512 
 
     #Looping through individual patient's images
-    for i in range(len(imgs_to_process)):
+    for i in range(lowerbound, upperbound):
 
         img = imgs_to_process[i]
         #Standardize the pixel values
@@ -171,7 +174,6 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
             min = np.min(img)
             max = np.max(img)
             img = img/(max-min)
-            print img.shape
             new_img = resize(img,[512,512])
             out_images.append(new_img) #Segmented lungs
 
