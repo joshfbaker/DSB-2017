@@ -16,9 +16,10 @@ from keras.optimizers import Adam
 from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras import backend as K
+from tqdm import tqdm
 
 # Any way to pull out paths into a separate config file?  Add this to the Git Ignore file?
-working_path = "C:/Users/572203/Documents/Data Science Bowl 2017/LUNA16/tutorial/"
+working_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/"
 
 # Theano?! I thought they were using TensorFlow backend?
 # Could be that they are using the Theano dimension ordering (z, x, y)
@@ -132,7 +133,7 @@ def predict():
     print('-'*30)
     print('Loading saved weights...')
     print('-'*30)
-    model.load_weights('./unet.hdf5')
+    model.load_weights('C:/Users/576473/Documents/GitHub/DSB-2017/kaggletutorialcode/unet.hdf5')
 
     print('-'*30)
     print('Predicting masks on test data...')
@@ -146,8 +147,10 @@ def predict():
     imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
     
     # Predict the nodule mask for every image in our test set
-    for i in range(num_test):
+    for fcount, i in enumerate(tqdm(range(0,num_test))):
+    #for i in range(num_test):
         imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
+
     np.save('masksDSBPredicted.npy', imgs_mask_test)
     
     # We can't calculate error because we don't have ground truth for the DSB image
