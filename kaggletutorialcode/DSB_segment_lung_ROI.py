@@ -30,9 +30,6 @@ working_path = "C:/Users/576473/Desktop/DSB 2017/sample_images [Extracted]/" #th
 save_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/" #this is the location where the all-inclusive segmented lung DSB stage1 numpy array will go 
 all_patients = sorted(os.listdir(working_path))
 
-
-patient_id = []  #num_patient x 1 length list of num images per patient
-
 #Looping through patient
 for fcount, patient_folder in enumerate(tqdm(all_patients)):
     
@@ -47,19 +44,15 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
     lowerbound = int(np.round(len(dicom_images)*.10))
     upperbound = int(np.round(len(dicom_images)*.90))
     
-    patient_id.append(upperbound-lowerbound)
-
     imgs_to_process = np.stack([s.pixel_array for s in dicom_images]) #Convert to a numpy array num_slices x 512 x 512 
     out_images = []  #individual patient segmented lungs
     
     #Looping through individual patient's images
     for i in range(lowerbound, upperbound):
         
-        ###
         #Grab everyother image (assuming some images redundant)
-        #if i % 2 == 0:
-        #    continue
-
+        if i % 2 == 0:
+            continue
 
         img = imgs_to_process[i]
         #Standardize the pixel values
@@ -187,20 +180,7 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
             final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
             for i in range(num_images):
                 final_images[i,0] = out_images[i]
-            np.save(save_path+"DSBImages_"+fcount+".npy", final_images)
-        ##Save individual patient's images
-        
-#num_images = len(out_images)
-
-#Initialize final_images numpy array (single channel)
-#final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
-
-# Slot out_images into final_images
-#for i in range(num_images):
-#    final_images[i,0] = out_images[i]
-
-#np.save(save_path+"DSBImages.npy", final_images)
-np.save(save_path+"PatientID.npy", np.asarray(patient_id))
+            np.save(save_path+"DSBImages_"+ str(fcount) +".npy", final_images)
 
 # in the above code, could use np.savez here so you can save the numpy array as a compressed file.  Just a thought.
 #can also use hdf5 to store these data sets, which apparently is very efficient and can be sliced into without heavy

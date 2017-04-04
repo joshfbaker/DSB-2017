@@ -10,6 +10,7 @@ Created on Sat Feb 25 11:37:42 2017
 from __future__ import print_function
 
 import numpy as np
+import os
 from keras.models import Model
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.optimizers import Adam
@@ -120,8 +121,6 @@ def get_unet():
 # In LUNA_train_unet, this function was train and predict. For DSB, we only want to predict.
 # Let's remove all training related code
 def predict():
-    # Load in the processed DSB Images
-    imgs_test = np.load(working_path+"DSBImages.npy").astype(np.float32)
 
     # We still need to stand up the unet model, if only to use it for prediction
     print('-'*30)
@@ -139,19 +138,24 @@ def predict():
     print('Predicting masks on test data...')
     print('-'*30)
     
-    # Why is imgs_test not normalized in the same way as imgs_train?  
-    # Shouldn't the processing steps be consistent?
-    num_test = len(imgs_test)
+    patients = os.listdir(working_path)
+    patients = [i for i in patients if "DSBImages_" in i]
 
-    # Initialize the numpy ND array to hold predicted masks
-    imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
-    
-    # Predict the nodule mask for every image in our test set
-    for fcount, i in enumerate(tqdm(range(0,num_test))):
-    #for i in range(num_test):
-        imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
+    for patient_num, patient_file in enumerate(tqdm(patients)):
+        # Load in the processed DSB Images
+        imgs_test = np.load(working_path + patient_file).astype(np.float32)
+        # Why is imgs_test not normalized in the same way as imgs_train?  
+        # Shouldn't the processing steps be consistent?
+        num_test = len(imgs_test)
 
-    np.save(working_path + 'masksDSBPredicted.npy', imgs_mask_test)
+        # Initialize the numpy ND array to hold predicted masks
+        imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
+        
+        # Predict the nodule mask for every image in our test set
+        for fcount, i in enumerate(tqdm(range(0,num_test))):
+            imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
+
+        np.save(working_path + 'masksDSBPredicted' + str(patient_num) + '.npy', imgs_mask_test)
     
     # We can't calculate error because we don't have ground truth for the DSB image
     

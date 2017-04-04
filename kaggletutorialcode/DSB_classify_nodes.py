@@ -112,7 +112,7 @@ def classifyData():
     X = np.load(working_path + "dataX.npy") #pass as a variable
     Y = np.load(working_path + "dataY.npy") #pass as a variable
 
-    kf = KFold(Y, n_folds=1)
+    kf = KFold(Y, n_folds=3)
     y_pred = Y * 0
     for train, test in kf:
         X_train, X_test, y_train, y_test = X[train,:], X[test,:], Y[train], Y[test]
@@ -122,6 +122,7 @@ def classifyData():
     print classification_report(Y, y_pred, target_names=["No Cancer", "Cancer"])
     print("logloss",logloss(Y, y_pred))
 
+    '''
     # All Cancer
     print "Predicting all positive"
     y_pred = np.ones(Y.shape)
@@ -135,7 +136,7 @@ def classifyData():
     print("logloss",logloss(Y, y_pred))
 
     # try XGBoost
-    '''
+
     print ("XGBoost")
     kf = KFold(Y, n_folds=3)
     y_pred = Y * 0
@@ -148,9 +149,7 @@ def classifyData():
     print("logloss",logloss(Y, y_pred))
     '''
 if __name__ == "__main__":
-    from sys import argv  
     working_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/"
     
-    #getRegionMetricRow(working_path + "masksDSBPredicted.npy")
     createFeatureDataset()
     classifyData()
