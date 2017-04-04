@@ -30,7 +30,7 @@ working_path = "C:/Users/576473/Desktop/DSB 2017/sample_images [Extracted]/" #th
 save_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/" #this is the location where the all-inclusive segmented lung DSB stage1 numpy array will go 
 all_patients = sorted(os.listdir(working_path))
 
-out_images = []  #final set of images
+
 patient_id = []  #num_patient x 1 length list of num images per patient
 
 #Looping through patient
@@ -50,7 +50,8 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
     patient_id.append(upperbound-lowerbound)
 
     imgs_to_process = np.stack([s.pixel_array for s in dicom_images]) #Convert to a numpy array num_slices x 512 x 512 
-
+    out_images = []  #individual patient segmented lungs
+    
     #Looping through individual patient's images
     for i in range(lowerbound, upperbound):
         
@@ -70,12 +71,12 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
         # to renormalize washed out images
         middle = img[100:400,100:400] 
         mean = np.mean(middle)  
-        max = np.max(img)
-        min = np.min(img)
+        max_1 = np.max(img)
+        min_1 = np.min(img)
         # To improve threshold finding, I'm moving the 
         # underflow and overflow on the pixel spectrum
-        img[img==max]=mean
-        img[img==min]=mean
+        img[img==max_1]=mean
+        img[img==min_1]=mean
         #
         # Using Kmeans to separate foreground (radio-opaque tissue)
         # and background (radio transparent tissue ie lungs)
@@ -177,24 +178,28 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
             # moving range to -1 to 1 to accomodate the resize function
             mean = np.mean(img)
             img = img - mean
-            min = np.min(img)
-            max = np.max(img)
-            img = img/(max-min)
+            min_2 = np.min(img)
+            max_2 = np.max(img)
+            img = img/(max_2-min_2)
             new_img = resize(img,[512,512])
             out_images.append(new_img) #Segmented lungs
-
+            num_images = len(out_images)
+            final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
+            for i in range(num_images):
+                final_images[i,0] = out_images[i]
+            np.save(save_path+"DSBImages_"+fcount+".npy", final_images)
         ##Save individual patient's images
         
-num_images = len(out_images)
+#num_images = len(out_images)
 
 #Initialize final_images numpy array (single channel)
-final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
+#final_images = np.ndarray([num_images,1,512,512],dtype=np.float32)
 
 # Slot out_images into final_images
-for i in range(num_images):
-    final_images[i,0] = out_images[i]
+#for i in range(num_images):
+#    final_images[i,0] = out_images[i]
 
-np.save(save_path+"DSBImages.npy", final_images)
+#np.save(save_path+"DSBImages.npy", final_images)
 np.save(save_path+"PatientID.npy", np.asarray(patient_id))
 
 # in the above code, could use np.savez here so you can save the numpy array as a compressed file.  Just a thought.
