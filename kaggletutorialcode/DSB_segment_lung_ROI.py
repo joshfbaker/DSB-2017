@@ -53,6 +53,12 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
 
     #Looping through individual patient's images
     for i in range(lowerbound, upperbound):
+        
+        ###
+        #Grab everyother image (assuming some images redundant)
+        #if i % 2 == 0:
+        #    continue
+
 
         img = imgs_to_process[i]
         #Standardize the pixel values
@@ -177,8 +183,8 @@ for fcount, patient_folder in enumerate(tqdm(all_patients)):
             new_img = resize(img,[512,512])
             out_images.append(new_img) #Segmented lungs
 
-
-
+        ##Save individual patient's images
+        
 num_images = len(out_images)
 
 #Initialize final_images numpy array (single channel)
@@ -189,6 +195,7 @@ for i in range(num_images):
     final_images[i,0] = out_images[i]
 
 np.save(save_path+"DSBImages.npy", final_images)
+np.save(save_path+"PatientID.npy", np.asarray(patient_id))
 
 # in the above code, could use np.savez here so you can save the numpy array as a compressed file.  Just a thought.
 #can also use hdf5 to store these data sets, which apparently is very efficient and can be sliced into without heavy

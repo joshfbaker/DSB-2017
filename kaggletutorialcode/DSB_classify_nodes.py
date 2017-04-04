@@ -4,15 +4,17 @@ Created on Sat Feb 25 11:38:01 2017
 
 @author: 572203
 """
-
+import os
 import numpy as np
-import pickle
+import pandas as pd
+import pickle #probs delete
 
 from sklearn import cross_validation
 from sklearn.cross_validation import StratifiedKFold as KFold
 from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier as RF
-import xgboost as xgb
+from skimage.measure import *
+#import xgboost as xgb
 
 def getRegionFromMap(slice_npy):
     thr = np.where(slice_npy > np.mean(slice_npy),0.,1.0)
@@ -21,7 +23,7 @@ def getRegionFromMap(slice_npy):
     regions = regionprops(labels)
     return regions
 
-def getRegionMetricRow(fname = "nodules.npy"):
+def getRegionMetricRow(fname):
     # fname, numpy array of dimension [#slices, 1, 512, 512] containing the images
     seg = np.load(fname)
     nslices = seg.shape[0]
@@ -78,22 +80,23 @@ def createFeatureDataset(nodfiles=None):
     if nodfiles == None:
         # directory of numpy arrays containing masks for nodules
         # found via unet segmentation
-        noddir = "/training_set/" 
-        nodfiles = glob(noddir +"*npy")
+        noddir = "nodules/" 
+        nodfiles = os.listdir(working_path + noddir) #Assuming one numpy file per patient rather than 1 master file
     # dict with mapping between training examples and true labels
     # the training set is the output masks from the unet segmentation
-    truthdata = pickle.load(open("truthdict.pkl",'r'))
+    #truthdata = pickle.load(open("truthdict.pkl",'r'))
+    truthdata = pd.read_csv(working_path + "labels.csv", header = None)
     numfeatures = 9
     feature_array = np.zeros((len(nodfiles),numfeatures))
     truth_metric = np.zeros((len(nodfiles)))
     
     for i,nodfile in enumerate(nodfiles):
-        patID = nodfile.split("_")[2]
-        truth_metric[i] = truthdata[int(patID)]
-        feature_array[i] = getRegionMetricRow(nodfile)
+        #patID = nodfile.split("_")[2] #filenaming convention where ???_???_patient_ID
+        truth_metric[i] = truthdata.iloc[i,1] #truth data is currently a dictionary
+        feature_array[i] = getRegionMetricRow(working_path + noddir + nodfile)
     
-    np.save("dataY.npy", truth_metric)
-    np.save("dataX.npy", feature_array)
+    np.save(working_path + "dataY.npy", truth_metric) #Don't save this
+    np.save(working_path + "dataX.npy", feature_array) #Don't save this
 
 import scipy as sp
 def logloss(act, pred):
@@ -106,10 +109,10 @@ def logloss(act, pred):
 
 
 def classifyData():
-    X = np.load("dataX.npy")
-    Y = np.load("dataY.npy")
+    X = np.load(working_path + "dataX.npy") #pass as a variable
+    Y = np.load(working_path + "dataY.npy") #pass as a variable
 
-    kf = KFold(Y, n_folds=3)
+    kf = KFold(Y, n_folds=1)
     y_pred = Y * 0
     for train, test in kf:
         X_train, X_test, y_train, y_test = X[train,:], X[test,:], Y[train], Y[test]
@@ -132,6 +135,7 @@ def classifyData():
     print("logloss",logloss(Y, y_pred))
 
     # try XGBoost
+    '''
     print ("XGBoost")
     kf = KFold(Y, n_folds=3)
     y_pred = Y * 0
@@ -142,9 +146,11 @@ def classifyData():
         y_pred[test] = clf.predict(X_test)
     print classification_report(Y, y_pred, target_names=["No Cancer", "Cancer"])
     print("logloss",logloss(Y, y_pred))
-
+    '''
 if __name__ == "__main__":
     from sys import argv  
+    working_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/"
     
-    getRegionMetricRow(argv[1:])
+    #getRegionMetricRow(working_path + "masksDSBPredicted.npy")
+    createFeatureDataset()
     classifyData()

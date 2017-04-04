@@ -151,7 +151,7 @@ def predict():
     #for i in range(num_test):
         imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
 
-    np.save('masksDSBPredicted.npy', imgs_mask_test)
+    np.save(working_path + 'masksDSBPredicted.npy', imgs_mask_test)
     
     # We can't calculate error because we don't have ground truth for the DSB image
     
