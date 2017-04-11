@@ -7,6 +7,7 @@ Created on Sat Feb 25 11:37:42 2017
 
 # JFB: This code is pretty poorly commented.  Adding additional comments
 
+
 from __future__ import print_function
 
 import numpy as np
@@ -20,7 +21,7 @@ from keras import backend as K
 from tqdm import tqdm
 
 # Any way to pull out paths into a separate config file?  Add this to the Git Ignore file?
-working_path = "C:/Users/576473/Desktop/DSB 2017/tutorial/"
+working_path = "E:/stage2/results/"
 
 # Theano?! I thought they were using TensorFlow backend?
 # Could be that they are using the Theano dimension ordering (z, x, y)
@@ -139,23 +140,28 @@ def predict():
     print('-'*30)
     
     patients = os.listdir(working_path)
-    patients = [i for i in patients if "DSBImages_" in i]
-
+    patients = [i for i in patients if "DSBTestImages_" in i] #patietns is a list of filenames
+    patients.reverse()
+    patients = patients[106:] 
+    # Loop through patients
     for patient_num, patient_file in enumerate(tqdm(patients)):
         # Load in the processed DSB Images
         imgs_test = np.load(working_path + patient_file).astype(np.float32)
         # Why is imgs_test not normalized in the same way as imgs_train?  
         # Shouldn't the processing steps be consistent?
+        
+        imgs_test = imgs_test[1::2]
+
         num_test = len(imgs_test)
 
         # Initialize the numpy ND array to hold predicted masks
         imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
         
-        # Predict the nodule mask for every image in our test set
+        # Loop through images
         for fcount, i in enumerate(tqdm(range(0,num_test))):
             imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
 
-        np.save(working_path + 'masksDSBPredicted' + str(patient_num) + '.npy', imgs_mask_test)
+        np.save(working_path + 'masksDSBTestPredicted_' + str(patient_file.split('_')[1].split('.')[0]) + '.npy', imgs_mask_test)
     
     # We can't calculate error because we don't have ground truth for the DSB image
     
